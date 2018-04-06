@@ -310,7 +310,7 @@ def sample(composite,trainingData):
 	return training
 
 
-def primitive(composite,primitiveType,trainingData):
+def primitive(composite,primitiveType,trainingData,year):
 	# PARAM composite image with (blue, green, red, nir, swir1, thermal, swir2)  
 	# PARAM primitive type
 	# PARAM training data FeatureCollection
@@ -398,8 +398,20 @@ def primitive(composite,primitiveType,trainingData):
 	
 	classifier = ee.Classifier.randomForest(25).train(trainingData,"class")
 	classification = image.classify(classifier,'Mode')
+	
+	classification = classification.set({"year":year})
   
 	return classification
+
+def assemblage(primitiveCollection,year):
+	# PARAM primitive collection
+	# RETURN assemblage
+	# RETURN probability
+		
+	primi1 = ee.Image(primitiveCollection.first())
+	primi2 = primi1.add(ee.Image.random())
+	
+	return primi1, primi2
 
 
 
