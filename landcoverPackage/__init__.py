@@ -305,16 +305,17 @@ def sample(composite,trainingData):
 	image = addJRC(image)
 	image = addTopography(image)
 	
-	training = ee.FeatureCollection(composite.sampleRegions(trainingData, ["class"], 30))		
+	training = ee.FeatureCollection(image.sampleRegions(trainingData, ["class"], 30))		
 	 
 	return training
 
 
-def primitive(composite,trainingData):
+def primitive(composite,primitiveType,trainingData):
 	# PARAM composite image with (blue, green, red, nir, swir1, thermal, swir2)  
+	# PARAM primitive type
 	# PARAM training data FeatureCollection
 	
-	# RETURN FeatureCollection
+	# RETURN image
 
 	def scaleBands(img):
 		"""Landsat is scaled by factor 0.0001 """
@@ -395,11 +396,9 @@ def primitive(composite,trainingData):
 	image = addJRC(image)
 	image = addTopography(image)
 	
-	classifier = ee.Classifier.randomForest(5,0).train(trainingData,["class"]);
-	classification = image.classify(classifier,'Mode');
+	classifier = ee.Classifier.randomForest(25).train(trainingData,"class")
+	classification = image.classify(classifier,'Mode')
   
 	return classification
-
-
 
 
