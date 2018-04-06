@@ -201,6 +201,9 @@ class indices():
 
 
 
+
+
+
 def composite(aoi,year,sensors="Landat8"):
 	# PARAM AOI: Area of interest (Feature)
 	# PARAM Year: (integer)
@@ -212,6 +215,10 @@ def composite(aoi,year,sensors="Landat8"):
 	image = image.select(ee.List([1,2,3,4,5,7,8]),ee.List(['blue','green','red','nir','swir1','thermal','swir2']))
 	
 	return image
+
+
+
+
 
 def sample(composite,trainingData):
 	# PARAM composite image with (blue, green, red, nir, swir1, thermal, swir2)  
@@ -299,8 +306,12 @@ def sample(composite,trainingData):
 	image = addTopography(image)
 	
 	training = ee.FeatureCollection(composite.sampleRegions(trainingData, ["class"], 30))		
-
-	return training
+	 
+	classifier = ee.Classifier.randomForest(5,0).train(trainingdata,["class"]);
+	classification = image.classify(classifier,'Mode');
+  
+	return classification
+	#return training
 
 
 def primitive():
