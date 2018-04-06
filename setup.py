@@ -8,5 +8,5 @@ setup(name='landcoverPackage',
       author='Ate Poortinga',
       author_email='apoortinga@sig-gis.com',
       license='MIT',
-      packages=['landcovertool'],
+      packages=['landcoverPackage'],
       zip_safe=False)
