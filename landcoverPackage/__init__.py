@@ -302,8 +302,8 @@ def sample(composite,trainingData):
 	image = scaleBands(composite)
 	image = index.addAllTasselCapIndices(image)
 	image = getIndices(image,covariates)
-	image = addJRC(image)
-	image = addTopography(image)
+	image = addJRC(image).unmask(0)
+	image = addTopography(image).unmask(0)
 	
 	training = ee.FeatureCollection(image.sampleRegions(trainingData, ["class"], 30))		
 	 
@@ -400,5 +400,6 @@ def primitive(composite,primitiveType,trainingData):
 	classification = image.classify(classifier,'Mode')
   
 	return classification
+
 
 
