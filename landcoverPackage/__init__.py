@@ -307,16 +307,99 @@ def sample(composite,trainingData):
 	
 	training = ee.FeatureCollection(composite.sampleRegions(trainingData, ["class"], 30))		
 	 
-	classifier = ee.Classifier.randomForest(5,0).train(trainingdata,["class"]);
+	return training
+
+
+def primitive(composite,trainingData):
+	# PARAM composite image with (blue, green, red, nir, swir1, thermal, swir2)  
+	# PARAM training data FeatureCollection
+	
+	# RETURN FeatureCollection
+
+	def scaleBands(img):
+		"""Landsat is scaled by factor 0.0001 """
+		
+		# implement scaling for thermal bands here #
+		
+		scaled = ee.Image(img).multiply(0.0001)
+			
+		return ee.Image(scaled.copyProperties(img))
+
+	def getIndices(img,covariates):	
+		""" add indices to image"""
+		
+		# no need to add indices that are already there
+		indices = removeDuplicates(covariates,img.bandNames().getInfo())
+		
+		for item in indices:
+			img = index.functionList[item](img)
+
+		return img
+
+	def removeDuplicates(covariateList,bands):
+		""" function to remove duplicates, i.e. existing bands do not need to be calculated """
+		
+		return [elem for elem in covariateList if elem not in bands]
+
+	"""Calculate the urban, builtup cropland rice and barren primitives """
+	covariates = ["ND_blue_green","ND_blue_red","ND_blue_nir","ND_blue_swir1","ND_blue_swir2", \
+				  "ND_green_red","ND_green_nir","ND_green_swir1","ND_green_swir2","ND_red_swir1",\
+				  "ND_red_swir2","ND_nir_red","ND_nir_swir1","ND_nir_swir2","ND_swir1_swir2",\
+				  "R_swir1_nir","R_red_swir1","EVI","SAVI","IBI"]
+
+	def addTopography(img):
+		"""  Function to add 30m SRTM elevation and derived slope, aspect, eastness, and 
+		northness to an image. Elevation is in meters, slope is between 0 and 90 deg,
+		aspect is between 0 and 359 deg. Eastness and northness are unitless and are
+		between -1 and 1. """
+
+		# Import SRTM elevation data
+		elevation = ee.Image("USGS/SRTMGL1_003");
+		
+		# Calculate slope, aspect, and hillshade
+		topo = ee.Algorithms.Terrain(elevation);
+		
+		# From aspect (a), calculate eastness (sin a), northness (cos a)
+		deg2rad = ee.Number(math.pi).divide(180);
+		aspect = topo.select(['aspect']);
+		aspect_rad = aspect.multiply(deg2rad);
+		eastness = aspect_rad.sin().rename(['eastness']).float();
+		northness = aspect_rad.cos().rename(['northness']).float();
+		
+		# Add topography bands to image
+		topo = topo.select(['elevation','slope','aspect']).addBands(eastness).addBands(northness);
+		img = img.addBands(topo);
+		return img;
+
+	def addJRC(img):
+		""" Function to add JRC Water layers: 'occurrence', 'change_abs', 
+			'change_norm', 'seasonality','transition', 'max_extent' """
+		
+		jrcImage = ee.Image("JRC/GSW1_0/GlobalSurfaceWater")
+		
+		img = img.addBands(jrcImage.select(['occurrence']).rename(['occurrence']))
+		img = img.addBands(jrcImage.select(['change_abs']).rename(['change_abs']))
+		img = img.addBands(jrcImage.select(['change_norm']).rename(['change_norm']))
+		img = img.addBands(jrcImage.select(['seasonality']).rename(['seasonality']))
+		img = img.addBands(jrcImage.select(['transition']).rename(['transition']))
+		img = img.addBands(jrcImage.select(['max_extent']).rename(['max_extent']))
+		
+		return img
+
+
+	index = indices()
+	
+	image = scaleBands(composite)
+	image = index.addAllTasselCapIndices(image)
+	image = getIndices(image,covariates)
+	image = addJRC(image)
+	image = addTopography(image)
+	
+	classifier = ee.Classifier.randomForest(5,0).train(trainingData,["class"]);
 	classification = image.classify(classifier,'Mode');
   
 	return classification
-	#return training
 
-
-def primitive():
-	## create the primitive
-	print "bye"
 
 
 
