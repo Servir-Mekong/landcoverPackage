@@ -25,5 +25,3 @@ def primitive():
 
 
 
-ee.Initialize()
-composite()
