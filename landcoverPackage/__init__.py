@@ -29,7 +29,7 @@ def sample(composite,trainingData):
 	# RETURN FeatureCollection
 	
 	composite = addCovariates(composite)
-	training = ee.FeatureCollection(composite.sampleRegions(trainingData, ["land_class"], 30))		
+	training = ee.FeatureCollection(composite.sampleRegions(trainingData, ["class"], 30))		
 	 
 	return training
 
