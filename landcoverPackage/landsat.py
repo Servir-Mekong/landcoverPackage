@@ -11,8 +11,8 @@ class env(object):
         """Initialize the environment."""   
          
         # Initialize the Earth Engine object, using the authentication credentials.       
-        self.startDate = "2017-01-01"
-        self.endDate = "2017-12-01"
+        self.startDate = ""
+        self.endDate = ""
         self.location = ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])
         
         self.metadataCloudCoverMax = 30
@@ -48,7 +48,7 @@ class functions():
 
 		self.env.location = aoi
 		self.env.startDate = ee.Date.fromYMD(year,1,1)
-		self.env.endDate = ee.Date.fromYMD(year,12,31)
+		self.env.endDate = ee.Date.fromYMD(year+1,1,1)
 
 		landsat8 =  ee.ImageCollection('LANDSAT/LC08/C01/T1_SR').filterDate(self.env.startDate,self.env.endDate).filterBounds(self.env.location)
 		landsat8 = landsat8.filterMetadata('CLOUD_COVER','less_than',self.env.metadataCloudCoverMax)
