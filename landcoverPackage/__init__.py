@@ -41,6 +41,7 @@ def primitive(composite,primitiveType,trainingData,year):
 	
 	# RETURN image
 
+	composite = addCovariates(composite)
 	classifier = ee.Classifier.randomForest(100).setOutputMode('PROBABILITY').train(trainingData,"class")
 	classification = composite.classify(classifier,'Mode')
 	
