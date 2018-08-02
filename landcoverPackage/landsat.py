@@ -10,10 +10,7 @@ class env(object):
     def __init__(self):
         """Initialize the environment."""   
          
-        # Initialize the Earth Engine object, using the authentication credentials.
-                
-        ee.Initialize()
-        
+        # Initialize the Earth Engine object, using the authentication credentials.       
         self.startDate = "2017-01-01"
         self.endDate = "2017-12-01"
         self.location = ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])

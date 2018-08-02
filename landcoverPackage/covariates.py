@@ -307,13 +307,4 @@ def returnCovariates(img):
 	return img
 
 	
-#location = ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])
-	
-#	task_ordered= ee.batch.Export.image.toAsset(image=img, 
-#								  description="test", 
-#								  assetId="users/servirmekong/temp/0luse009" ,
-#								  region=location['coordinates'], 
-#								  maxPixels=1e13,
-#								  scale=30)	
 
-#task_ordered.start() 
