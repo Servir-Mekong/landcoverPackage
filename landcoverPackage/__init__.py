@@ -27,7 +27,8 @@ def sample(composite,trainingData):
 	# PARAM training data FeatureCollection
 	
 	# RETURN FeatureCollection
-
+	
+	composite = addCovariates(composite)
 	training = ee.FeatureCollection(composite.sampleRegions(trainingData, ["land_class"], 30))		
 	 
 	return training
@@ -40,7 +41,7 @@ def primitive(composite,primitiveType,trainingData,year):
 	
 	# RETURN image
 
-	classifier = ee.Classifier.randomForest(100).setOutputMode('PROBABILITY').train(trainingData,"land_class")
+	classifier = ee.Classifier.randomForest(100).setOutputMode('PROBABILITY').train(trainingData,"class")
 	classification = composite.classify(classifier,'Mode')
 	
 	classification = classification.set({"year":year})
@@ -48,51 +49,8 @@ def primitive(composite,primitiveType,trainingData,year):
 	return ee.Image(1).subtract(classification).multiply(100).toInt()
 
 
-
-if __name__ == "__main__":  
+def assemblage(year,primitiveCollection,):
+	print "I'm just a dummy"
+	img = ee.Image(primitiveCollection.first())
 	
-	ee.Initialize()
-	aoi = ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])
-	trainingData = ee.FeatureCollection("users/servirmekong/NorthVietnam/urban2") #.randomColumn("rand")
-	
-	trainingData = trainingData #.filter(ee.Filter.gt("rand",0.50))
-	print trainingData.size().getInfo()
-	img = ee.Image("users/servirmekong/temp/0luse009")
-	
-	year = 2014
-	
-	#img = ee.Image(composite(aoi,year))
-	#print "---------------"
-	#print img.bandNames().getInfo()
-	
-	img = addCovariates(img)
-	#print "---------------"
-	#print img.bandNames().getInfo()
-	
-	samples = ee.FeatureCollection(sample(img,trainingData))
-	#print samples.first().getInfo()
-	primi = primitive(img,"rice",samples,2014)
-
-	#print primi.bandNames().getInfo()
-
-	task_ordered= ee.batch.Export.image.toAsset(image=primi, 
-								  description="test", 
-								  assetId="users/servirmekong/temp/0luse019" ,
-								  region=aoi['coordinates'], 
-								  maxPixels=1e13,
-								  scale=30)	
-
-	task_ordered.start() 
-	
-	#def getComposite(primitiveCollection,year):
-		# PARAM primitive collection
-		# RETURN assemblage
-		# RETURN probability
-		
-	#	primi1 = ee.Image(primitiveCollection.first())
-	#	primi2 = primi1.add(ee.Image.random())
-	
-	#	return primi1, primi2
-
-	#def getCovariates
-
+	return img
