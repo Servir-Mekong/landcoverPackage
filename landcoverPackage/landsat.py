@@ -15,15 +15,15 @@ class env(object):
         self.endDate = ""
         self.location = ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])
         
-        self.metadataCloudCoverMax = 95
+        self.metadataCloudCoverMax = 40
         self.cloudThreshold = 10
         self.hazeThresh = 200
               
-        self.maskSR = False
-        self.cloudMask = False
-        self.hazeMask = False
-        self.shadowMask = False
-        self.brdfCorrect = False
+        self.maskSR = True
+        self.cloudMask = True
+        self.hazeMask = True
+        self.shadowMask = True
+        self.brdfCorrect = True
         self.terrainCorrection = True
         
         self.percentiles = [20,80] 
