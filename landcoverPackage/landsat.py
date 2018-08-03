@@ -61,8 +61,6 @@ class functions():
 			if self.env.maskSR == True:
 				#print "removing clouds" 
 				landsat8 = landsat8.map(self.CloudMaskSRL8)    
-			
-			print ee.Image(landsat8.first()).bandNames().getInfo()
 					
 			# mask clouds using cloud mask function
 			if self.env.hazeMask == True:
@@ -91,6 +89,8 @@ class functions():
 						
 			if self.env.terrainCorrection == True:
 				landsat8 = ee.ImageCollection(landsat8.map(self.terrain))
+			
+			
 				
 			medoid = self.medoidMosaic(landsat8)
 			medoidDown = ee.Image(self.medoidMosaicPercentiles(landsat8,self.env.percentiles[0]))
@@ -257,14 +257,23 @@ class functions():
 
 			bandList = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']; # Specify Bands to topographically correct
     
+
+			def applyBands(image):
+				blue = apply_SCSccorr('blue').select(['blue'])
+				green = apply_SCSccorr('green').select(['green'])
+				red = apply_SCSccorr('red').select(['red'])
+				nir = apply_SCSccorr('nir').select(['nir'])
+				swir1 = apply_SCSccorr('swir1').select(['swir1'])
+				swir2 = apply_SCSccorr('swir2').select(['swir2'])
+				return replace_bands(image, [blue, green, red, nir, swir1, swir2])
+
 			def apply_SCSccorr(band):
 				method = 'SCSc';
-				
-				
+		
 				out = img_plus_ic_mask2.select('IC', band).reduceRegion(reducer= ee.Reducer.linearFit(), \
-																			geometry= ee.Geometry(img.geometry().buffer(-5000)), \
-																			scale= 30, \
-																			maxPixels = 1e13); 
+																		geometry= ee.Geometry(img.geometry().buffer(-5000)), \
+																		scale= 30, \
+																		maxPixels = 1e13); 
 
 				out_a = ee.Number(out.get('scale'));
 				out_b = ee.Number(out.get('offset'));
@@ -280,8 +289,9 @@ class functions():
       
 				return ee.Image(SCSc_output);
 																  
-			img_SCSccorr = ee.Image([apply_SCSccorr(band) for band in bandList]).addBands(img_plus_ic.select('IC'));
-			
+			#img_SCSccorr = ee.Image([apply_SCSccorr(band) for band in bandList]).addBands(img_plus_ic.select('IC'));
+			img_SCSccorr = applyBands(img).select(bandList).addBands(img_plus_ic.select('IC'))
+		
 			bandList_IC = ee.List([bandList, 'IC']).flatten();
 			
 			img_SCSccorr = img_SCSccorr.unmask(img_plus_ic.select(bandList_IC)).select(bandList);
@@ -450,4 +460,4 @@ class functions():
 def composite(aoi,year):
 	img = ee.Image(functions().getLandsat(aoi,year))
 	return img
-	
+
