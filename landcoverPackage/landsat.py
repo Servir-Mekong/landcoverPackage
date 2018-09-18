@@ -15,7 +15,7 @@ class env(object):
         self.endDate = ""
         self.location = ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])
         
-        self.metadataCloudCoverMax = 40
+        self.metadataCloudCoverMax = 60
         self.cloudThreshold = 10
         self.hazeThresh = 200
               
@@ -26,6 +26,8 @@ class env(object):
         self.brdfCorrect = True
         self.terrainCorrection = True
         
+        
+        self.SLC = False
         self.percentiles = [20,80] 
         
         self.medoidBands = ee.List(['blue','green','red','nir','swir1','swir2'])
@@ -40,7 +42,7 @@ class env(object):
 class functions():       
 	def __init__(self):
 		"""Initialize the Surfrace Reflectance app."""  
- 
+	
 	    # get the environment
 		self.env = env() 	
 		
@@ -50,51 +52,64 @@ class functions():
 		self.env.startDate = ee.Date.fromYMD(year,1,1)
 		self.env.endDate = ee.Date.fromYMD(year+1,1,1)
 
+		landsat5 =  ee.ImageCollection('LANDSAT/LT05/C01/T1_SR').filterDate(self.env.startDate,self.env.endDate).filterBounds(self.env.location)
+		landsat5 = landsat5.filterMetadata('CLOUD_COVER','less_than',self.env.metadataCloudCoverMax)
+		landsat5 = landsat5.select(self.env.sensorBandDictLandsatSR.get('L5'),self.env.bandNamesLandsat).map(self.defringe)
+
+		landsat7 =  ee.ImageCollection('LANDSAT/LE07/C01/T1_SR').filterDate(self.env.startDate,self.env.endDate).filterBounds(self.env.location)
+		landsat7 = landsat7.filterMetadata('CLOUD_COVER','less_than',self.env.metadataCloudCoverMax)
+		landsat7 = landsat7.select(self.env.sensorBandDictLandsatSR.get('L7'),self.env.bandNamesLandsat)
+
+
 		landsat8 =  ee.ImageCollection('LANDSAT/LC08/C01/T1_SR').filterDate(self.env.startDate,self.env.endDate).filterBounds(self.env.location)
 		landsat8 = landsat8.filterMetadata('CLOUD_COVER','less_than',self.env.metadataCloudCoverMax)
 		landsat8 = landsat8.select(self.env.sensorBandDictLandsatSR.get('L8'),self.env.bandNamesLandsat)
-				
 
-		if landsat8.size().getInfo() > 0:
+		if (self.env.SLC or year < 2004):
+			landsat = landsat5.merge(landsat7).merge(landsat8)
+		else:
+			landsat = landsat5.merge(landsat8)
+		
+		print landsat.size().getInfo()
+		if landsat.size().getInfo() > 0:
 			
 			# mask clouds using the QA band
 			if self.env.maskSR == True:
 				#print "removing clouds" 
-				landsat8 = landsat8.map(self.CloudMaskSRL8)    
-					
+				landsat = landsat.map(self.CloudMaskSRL8)    
+			
+			
 			# mask clouds using cloud mask function
 			if self.env.hazeMask == True:
 				#print "removing haze"
-				landsat8 = landsat8.map(self.maskHaze)
+				landsat = landsat.map(self.maskHaze)
 
 
 			# mask clouds using cloud mask function
 			if self.env.shadowMask == True:
 				#print "shadow masking"
 				self.fullCollection = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR').filterBounds(self.env.location).select(self.env.sensorBandDictLandsatSR.get('L8'),self.env.bandNamesLandsat)  
-				landsat8 = self.maskShadows(landsat8)		
+				landsat = self.maskShadows(landsat)
 			
-			landsat8 = landsat8.map(self.scaleLandsat)
+			
+			landsat = landsat.map(self.scaleLandsat)
 
-			
 			# mask clouds using cloud mask function
 			if self.env.cloudMask == True:
 				#print "removing some more clouds"
-				landsat8 = landsat8.map(self.maskClouds)
+				landsat = landsat.map(self.maskClouds)
 
-					
 			if self.env.brdfCorrect == True:
-				landsat8 = landsat8.map(self.brdf)
+				landsat = landsat.map(self.brdf)
 
 						
 			if self.env.terrainCorrection == True:
-				landsat8 = ee.ImageCollection(landsat8.map(self.terrain))
+				landsat = ee.ImageCollection(landsat.map(self.terrain))
 			
 			
-				
-			medoid = self.medoidMosaic(landsat8)
-			medoidDown = ee.Image(self.medoidMosaicPercentiles(landsat8,self.env.percentiles[0]))
-			medoidUp = self.medoidMosaicPercentiles(landsat8,self.env.percentiles[1])
+			medoid = self.medoidMosaic(landsat)
+			medoidDown = ee.Image(self.medoidMosaicPercentiles(landsat,self.env.percentiles[0]))
+			medoidUp = self.medoidMosaicPercentiles(landsat,self.env.percentiles[1])
 			
 			mosaic = medoid.addBands(medoidDown).addBands(medoidUp)
 				
@@ -195,8 +210,63 @@ class functions():
 
 		return collection_tdom
 
+	def defringe(self,img):
+		
+		# threshold for defringing landsat5 and 7
+		fringeCountThreshold = 279
 
- 	def terrain(self,img):   
+		k = ee.Kernel.fixed(41, 41, 
+                                [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]);
+
+
+		m = ee.Image(img).mask().reduce(ee.Reducer.min())
+		sum = m.reduceNeighborhood(ee.Reducer.sum(), k, 'kernel')
+		mask = sum.gte(fringeCountThreshold)        
+        
+		return img.updateMask(mask)
+		
+
+	def terrain(self,img):   
 		
 		
 		degree2radian = 0.01745;
@@ -204,7 +274,7 @@ class functions():
  
 		def topoCorr_IC(img):
 			
-			dem = ee.Image("USGS/SRTMGL1_003")
+			dem = ee.Image("JAXA/ALOS/AW3D30_V1_1").select("MED")
 			
 			
 			# Extract image metadata about solar position
@@ -269,26 +339,38 @@ class functions():
 
 			def apply_SCSccorr(band):
 				method = 'SCSc';
-		
-				out = img_plus_ic_mask2.select('IC', band).reduceRegion(reducer= ee.Reducer.linearFit(), \
-																		geometry= ee.Geometry(img.geometry().buffer(-5000)), \
-																		scale= 30, \
-																		maxPixels = 1e13); 
-
-				out_a = ee.Number(out.get('scale'));
-				out_b = ee.Number(out.get('offset'));
-				out_c = ee.Number(out.get('offset')).divide(ee.Number(out.get('scale')));
+						
+				out = ee.Image(1).addBands(img_plus_ic_mask2.select('IC', band)).reduceRegion(reducer= ee.Reducer.linearRegression(2,1), \
+  																	   geometry= ee.Geometry(img.geometry().buffer(-5000)), \
+																		scale= 300, \
+																		bestEffort =True,
+																		maxPixels=1e10)
+																		
 				
+				#out_a = ee.Number(out.get('scale'));
+				#out_b = ee.Number(out.get('offset'));
+				#out_c = ee.Number(out.get('offset')).divide(ee.Number(out.get('scale')));
+				
+				
+				fit = out.combine({"coefficients": ee.Array([[1],[1]])}, False);
+
+				#Get the coefficients as a nested list, 
+				#cast it to an array, and get just the selected column
+				out_a = (ee.Array(fit.get('coefficients')).get([0,0]));
+				out_b = (ee.Array(fit.get('coefficients')).get([1,0]));
+				out_c = out_a.divide(out_b)
+
+					
 				# apply the SCSc correction
 				SCSc_output = img_plus_ic_mask2.expression("((image * (cosB * cosZ + cvalue)) / (ic + cvalue))", {
-															'image': img_plus_ic_mask2.select([band]),
-															'ic': img_plus_ic_mask2.select('IC'),
-															'cosB': img_plus_ic_mask2.select('cosS'),
-															'cosZ': img_plus_ic_mask2.select('cosZ'),
-															'cvalue': out_c });
-      
+																'image': img_plus_ic_mask2.select([band]),
+																'ic': img_plus_ic_mask2.select('IC'),
+																'cosB': img_plus_ic_mask2.select('cosS'),
+																'cosZ': img_plus_ic_mask2.select('cosZ'),
+																'cvalue': out_c });
+		  
 				return ee.Image(SCSc_output);
-																  
+																	  
 			#img_SCSccorr = ee.Image([apply_SCSccorr(band) for band in bandList]).addBands(img_plus_ic.select('IC'));
 			img_SCSccorr = applyBands(img).select(bandList).addBands(img_plus_ic.select('IC'))
 		
@@ -304,6 +386,7 @@ class functions():
 		img = topoCorr_SCSc(img)
 		
 		return img.addBands(thermalBand)
+
   	
  
 	def brdf(self,img):   
@@ -455,9 +538,7 @@ class functions():
 		return image;
 
         
-	
-	
 def composite(aoi,year):
 	img = ee.Image(functions().getLandsat(aoi,year))
 	return img
-
+	
