@@ -112,7 +112,8 @@ class functions():
 			medoidUp = self.medoidMosaicPercentiles(landsat,self.env.percentiles[1])
 			
 			mosaic = medoid.addBands(medoidDown).addBands(medoidUp)
-				
+			mosaic = ee.Image(self.reScaleLandsat(mosaic))
+						
 			return mosaic
        
 	
@@ -139,7 +140,7 @@ class functions():
                 
 		otherBands = ee.Image(img).bandNames().removeAll(thermalBand)
 		scaled = ee.Image(img).select(otherBands).divide(0.0001)
-        
+		        
 		image = ee.Image(scaled.addBands(thermal)).int16()
         
 		return image.copyProperties(img)
@@ -342,15 +343,10 @@ class functions():
 						
 				out = ee.Image(1).addBands(img_plus_ic_mask2.select('IC', band)).reduceRegion(reducer= ee.Reducer.linearRegression(2,1), \
   																	   geometry= ee.Geometry(img.geometry().buffer(-5000)), \
-																		scale= 300, \
+																		scale= 900, \
 																		bestEffort =True,
 																		maxPixels=1e10)
 																		
-				
-				#out_a = ee.Number(out.get('scale'));
-				#out_b = ee.Number(out.get('offset'));
-				#out_c = ee.Number(out.get('offset')).divide(ee.Number(out.get('scale')));
-				
 				
 				fit = out.combine({"coefficients": ee.Array([[1],[1]])}, False);
 
@@ -379,9 +375,7 @@ class functions():
 			img_SCSccorr = img_SCSccorr.unmask(img_plus_ic.select(bandList_IC)).select(bandList);
   			
 			return img_SCSccorr.unmask(img_plus_ic.select(bandList)) 
-	
-		
-		
+			
 		img = topoCorr_IC(img)
 		img = topoCorr_SCSc(img)
 		
@@ -539,6 +533,7 @@ class functions():
 
         
 def composite(aoi,year):
+	    
 	img = ee.Image(functions().getLandsat(aoi,year))
 	return img
 	

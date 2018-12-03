@@ -1,6 +1,7 @@
 import ee, math
 import landsat
 import covariates
+import smoothing
 
 
 def composite(aoi,year,sensors="Landat8"):
@@ -49,6 +50,15 @@ def primitive(composite,primitiveType,trainingData,year):
   
 	return ee.Image(1).subtract(classification).multiply(100).toInt()
 
+
+def smoothing(primitive):
+	# PARAM primitives: imagecollection  
+	
+	# RETURN image collection and rmse
+
+	collection, rmse = whittakerSmoothen(primitive)
+	
+	return collection, rmse
 
 def assemblage(year,primitiveCollection,):
 	print "I'm just a dummy"

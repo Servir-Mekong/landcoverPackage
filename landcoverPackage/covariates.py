@@ -274,7 +274,6 @@ class indices():
 
 def returnCovariates(img):
 	
-	
 	# hard coded for now
 	bands = ['blue','green','red','nir','swir1', 'swir2']	
 	bandLow = ['p20_blue','p20_green','p20_red','p20_nir','p20_swir1', 'p20_swir2']
@@ -287,9 +286,22 @@ def returnCovariates(img):
 				  "R_swir1_nir","R_red_swir1","EVI","SAVI","IBI"]
 		
 	index = indices()
+	
+	def scaleLandsat(img):
+		"""Landast is scaled by factor 0.0001 """
+		thermalBand = ee.List(['thermal'])
+		thermal = ee.Image(img).select(thermalBand).divide(10)
+					
+		otherBands = ee.Image(img).bandNames().removeAll(thermalBand)
+		
+		scaled = ee.Image(img).select(otherBands).multiply(0.0001)
+		image = ee.Image(scaled.addBands(thermal))        
+	    
+		return ee.Image(image.copyProperties(img))
+
+	img = scaleLandsat(img)
 		
 	def addIndices(img,prefix):
-		#image = scaleBands(composite)
 		img = index.addAllTasselCapIndices(img)
 		img = index.getIndices(img,covariates)
 		img = index.addJRC(img).unmask(0)
@@ -304,7 +316,6 @@ def returnCovariates(img):
 	up = addIndices(img.select(bandHigh,bands),"p80")
 		
 	img = down.addBands(middle).addBands(up)
-	return img
-
 	
+	return img
 
