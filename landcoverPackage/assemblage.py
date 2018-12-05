@@ -25,7 +25,7 @@ class assemblage():
 		DTstring = ['1) root 9999 9999 9999'];
 		# Call the function to construct the decision tree string (DO NOT CHANGE)
 		DTstring = "\n".join(self.decision(nodeStruct,classStruct,startId,1,DTstring))#.join("\n");
-
+		print(DTstring)
 		classifier = ee.Classifier.decisionTree(DTstring)
 		
 		sd = 10

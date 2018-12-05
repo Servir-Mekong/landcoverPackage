@@ -2,6 +2,7 @@ import ee, math
 import landsat
 import covariates
 import smoothing
+import assemblage
 
 
 def composite(aoi,year,sensors="Landat8"):
@@ -56,7 +57,7 @@ def smoothing(primitive):
 	
 	# RETURN image collection and rmse
 
-	collection, rmse = whittakerSmoothen(primitive)
+	collection, rmse = smoothing.whittakerSmoothen(primitive)
 	
 	return collection, rmse
 

@@ -27,9 +27,9 @@ class env(object):
         self.terrainCorrection = True
         
         
-        self.env.zScoreThresh=-0.8
-        self.env.shadowSumThresh=0.35
-        self.env.dilatePixels=2
+        self.zScoreThresh=-0.8
+        self.shadowSumThresh=0.35
+        self.dilatePixels=2
         
         self.SLC = False
         self.percentiles = [20,80] 
@@ -193,8 +193,12 @@ class functions():
         
 		return img;
         
-	def maskShadows(self,collection,self.env.zScoreThresh,self.env.shadowSumThresh=0.35,self.env.dilatePixels=2):
+	def maskShadows(self,collection):
 
+		zScoreThresh =  self.env.zScoreThresh
+		shadowSumThresh = self.env.shadowSumThresh
+		dilatePixels= self.env.dilatePixels
+	
 		def TDOM(image):
 			zScore = image.select(shadowSumBands).subtract(irMean).divide(irStdDev)
 			irSum = image.select(shadowSumBands).reduce(ee.Reducer.sum())
