@@ -27,6 +27,10 @@ class env(object):
         self.terrainCorrection = True
         
         
+        self.env.zScoreThresh=-0.8
+        self.env.shadowSumThresh=0.35
+        self.env.dilatePixels=2
+        
         self.SLC = False
         self.percentiles = [20,80] 
         
@@ -141,7 +145,7 @@ class functions():
 		otherBands = ee.Image(img).bandNames().removeAll(thermalBand)
 		scaled = ee.Image(img).select(otherBands).divide(0.0001)
 		        
-		image = ee.Image(scaled.addBands(thermal)).int16()
+		image = ee.Image(scaled.addBands(thermal)).uint16()
         
 		return image.copyProperties(img)
 
@@ -189,7 +193,7 @@ class functions():
         
 		return img;
         
-	def maskShadows(self,collection,zScoreThresh=-0.8,shadowSumThresh=0.35,dilatePixels=2):
+	def maskShadows(self,collection,self.env.zScoreThresh,self.env.shadowSumThresh=0.35,self.env.dilatePixels=2):
 
 		def TDOM(image):
 			zScore = image.select(shadowSumBands).subtract(irMean).divide(irStdDev)

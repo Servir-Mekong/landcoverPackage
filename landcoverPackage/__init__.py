@@ -60,7 +60,7 @@ def smoothing(primitive):
 	
 	return collection, rmse
 
-def assemblage(year,primitiveCollection,):
+def assemblage(year,primitiveCollection,decisionTree):
 	print "I'm just a dummy"
 	img = ee.Image(primitiveCollection.first())
 	
