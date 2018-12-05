@@ -128,22 +128,22 @@ class assemblage():
 		return stack;
 
 		
-import ee
-ee.Initialize()
+#import ee
+#ee.Initialize()
 
 
-aquaculture = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/aquaculture").first()).rename('aquaculture')
-barren = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/barren").first()).rename('barren')
-cropland = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/cropland").first()).rename('cropland')
-deciduous = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/deciduous").first()).rename('forest')
+#aquaculture = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/aquaculture").first()).rename('aquaculture')
+#barren = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/barren").first()).rename('barren')
+#cropland = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/cropland").first()).rename('cropland')
+#deciduous = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/deciduous").first()).rename('forest')
 		
-image = aquaculture.addBands(barren).addBands(cropland).addBands(deciduous)
+#image = aquaculture.addBands(barren).addBands(cropland).addBands(deciduous)
 
-nodeStruct = { 	'key1':  {'band': 'aquaculture','threshold': 50, 'left': 'terminal', 'leftName': 'aquaculture', 'right': 'key2'},
-				'key2':  {'band': 'barren', 'threshold': 40, 'left': 'terminal', 'leftName': 'barren', 'right': 'key3'},
-				'key3':  {'band': 'cropland', 'threshold': 60, 'left': 'terminal', 'leftName': 'cropland', 'right': 'key4'},
-				'key4':  {'band': 'forest', 'threshold': 5, 'left': 'terminal', 'leftName': 'other', 'right': 'terminal', 'rightName': 'forest'}	};
+#nodeStruct = { 	'key1':  {'band': 'aquaculture','threshold': 50, 'left': 'terminal', 'leftName': 'aquaculture', 'right': 'key2'},
+				#'key2':  {'band': 'barren', 'threshold': 40, 'left': 'terminal', 'leftName': 'barren', 'right': 'key3'},
+				#'key3':  {'band': 'cropland', 'threshold': 60, 'left': 'terminal', 'leftName': 'cropland', 'right': 'key4'},
+				#'key4':  {'band': 'forest', 'threshold': 5, 'left': 'terminal', 'leftName': 'other', 'right': 'terminal', 'rightName': 'forest'}	};
 
-m,p = assemblage().createAssemblage(image,nodeStruct)
-print(m.getInfo())
-print(p.getInfo())
+#m,p = assemblage().createAssemblage(image,nodeStruct)
+#print(m.getInfo())
+#print(p.getInfo())
