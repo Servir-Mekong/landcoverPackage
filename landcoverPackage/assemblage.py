@@ -1,4 +1,4 @@
-
+import ee
 
 class assemblage():
 
@@ -7,17 +7,8 @@ class assemblage():
 		
 	def createAssemblage(self,image,nodeStruct):
 
-		names = image.bandNames().getInfo()
-		classes = ['other']
-
-		for name in names:
-			classes.append(name.encode('ascii'))
-		numbers = range(0,image.bandNames().length().getInfo()+1,1)
-		
-		classStruct = {}
-		for i in numbers:
-			classStruct[classes[i]] = {'number' : i}
-		
+		classStruct = self._toClassStruct(nodeStruct)
+			
 		# The starting id, i.e. the first decision
 		startId = 'key1';
 		
@@ -25,7 +16,7 @@ class assemblage():
 		DTstring = ['1) root 9999 9999 9999'];
 		# Call the function to construct the decision tree string (DO NOT CHANGE)
 		DTstring = "\n".join(self.decision(nodeStruct,classStruct,startId,1,DTstring))#.join("\n");
-		print(DTstring)
+		
 		classifier = ee.Classifier.decisionTree(DTstring)
 		
 		sd = 10
@@ -53,14 +44,7 @@ class assemblage():
 			return img.eq(mode)
 		
 		prob = ee.Image(assemblage.map(uncertainty).sum()).rename('prob')
-		
-		#region =  ee.Geometry.Polygon([[103.876,18.552],[105.806,18.552],[105.806,19.999],[103.876,19.999],[103.876,18.552]])
-
-		#task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(prob), description='test', assetId='users/servirmekong/temp/outputAssemblage4',region=region['coordinates'], maxPixels=1e13,scale=300)
-		#task_ordered.start() 
-
-		#print(classified.getInfo())
-		
+				
 		return mode, prob
 
 	# Function to convert a dictionary of nodes into a decision tree string
@@ -127,23 +111,32 @@ class assemblage():
 		
 		return stack;
 
+	def _toClassStruct(self,nodeStruct):
+		names = set([])
+		for key, node in nodeStruct.iteritems():
+			left_name = node.get('leftName')
+			if left_name:
+				names.add(left_name)
+			right_name = node.get('rightName')
+			if right_name:
+				names.add(right_name)
+		names.remove('other')
+		names = list(names)
+		names.sort()
+		names.insert(0, 'other')
+
+		class_struct = {}
 		
-#import ee
-#ee.Initialize()
+		for i, name in enumerate(names):
+			class_struct[name] = {'number': i}
+		return class_struct
 
 
-#aquaculture = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/aquaculture").first()).rename('aquaculture')
-#barren = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/barren").first()).rename('barren')
-#cropland = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/cropland").first()).rename('cropland')
-#deciduous = ee.Image(ee.ImageCollection("projects/servir-mekong/yearly_primitives_smoothed/deciduous").first()).rename('forest')
-		
-#image = aquaculture.addBands(barren).addBands(cropland).addBands(deciduous)
+	
 
-#nodeStruct = { 	'key1':  {'band': 'aquaculture','threshold': 50, 'left': 'terminal', 'leftName': 'aquaculture', 'right': 'key2'},
-				#'key2':  {'band': 'barren', 'threshold': 40, 'left': 'terminal', 'leftName': 'barren', 'right': 'key3'},
-				#'key3':  {'band': 'cropland', 'threshold': 60, 'left': 'terminal', 'leftName': 'cropland', 'right': 'key4'},
-				#'key4':  {'band': 'forest', 'threshold': 5, 'left': 'terminal', 'leftName': 'other', 'right': 'terminal', 'rightName': 'forest'}	};
-
-#m,p = assemblage().createAssemblage(image,nodeStruct)
-#print(m.getInfo())
-#print(p.getInfo())
+def createAssemblage(image,nodeStruct):
+	
+	assembl, uncertainty = assemblage().createAssemblage(image,nodeStruct)
+	
+	return assembl, uncertainty
+	

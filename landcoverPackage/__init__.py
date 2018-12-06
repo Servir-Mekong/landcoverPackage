@@ -61,8 +61,18 @@ def smoothing(primitive):
 	
 	return collection, rmse
 
-def assemblage(year,primitiveCollection,decisionTree):
-	print "I'm just a dummy"
-	img = ee.Image(primitiveCollection.first())
+def getAssemblage(image,nodeStruct):
+	# PARAM primitives: image with primitives as bands  
+	# Node structure see example
+	#  	nodeStruct = { 	'key1':  {'band': 'aquaculture','threshold': 50, 'left': 'terminal', 'leftName': 'aquaculture', 'right': 'key2'},
+	#					'key2':  {'band': 'barren', 'threshold': 40, 'left': 'terminal', 'leftName': 'barren', 'right': 'key3'},
+	#					'key3':  {'band': 'cropland', 'threshold': 60, 'left': 'terminal', 'leftName': 'cropland', 'right': 'key4'},
+	#					'key4':  {'band': 'forest', 'threshold': 5, 'left': 'terminal', 'leftName': 'other', 'right': 'terminal', 'rightName': 'forest'}	};
+	#
+	# RETURN assemblage: image: numbers represent classes in alphabetical order starting with 0 = other
+	# RETURN probability: image: result from monte carlo
 	
-	return img
+	assem, prob = assemblage.createAssemblage(image,nodeStruct)
+	
+	return assem, prob
+
