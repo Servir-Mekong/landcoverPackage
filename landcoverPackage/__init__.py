@@ -20,7 +20,6 @@ def composite(aoi,year,sensors="Landat8"):
 def compositeSAR(aoi,year):
 	# PARAM AOI: Area of interest (Feature)
 	# PARAM Year: (integer)
-	# PARAM Sensors : (Landat4,Landat5,Landat7,Landsat8 )
 	
 	# function returns an image
 
@@ -30,7 +29,6 @@ def compositeSAR(aoi,year):
 def compositeLandsatSentinel2(aoi,year):
 	# PARAM AOI: Area of interest (Feature)
 	# PARAM Year: (integer)
-	# PARAM Sensors : (Landat4,Landat5,Landat7,Landsat8 )
 	
 	# function returns an image
 
