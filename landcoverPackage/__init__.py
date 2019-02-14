@@ -3,6 +3,7 @@ import landsat
 import covariates
 import smoothing
 import assemblage
+import sentinel1
 
 
 def composite(aoi,year,sensors="Landat8"):
@@ -13,6 +14,26 @@ def composite(aoi,year,sensors="Landat8"):
 	# function returns an image
 
 	image = landsat.composite(aoi,year)
+	return image
+
+def compositeSAR(aoi,year):
+	# PARAM AOI: Area of interest (Feature)
+	# PARAM Year: (integer)
+	# PARAM Sensors : (Landat4,Landat5,Landat7,Landsat8 )
+	
+	# function returns an image
+
+	image = sentinel1.composite(aoi,year)
+	return image
+
+def compositeLandsatSentinel2(aoi,year):
+	# PARAM AOI: Area of interest (Feature)
+	# PARAM Year: (integer)
+	# PARAM Sensors : (Landat4,Landat5,Landat7,Landsat8 )
+	
+	# function returns an image
+
+	image = sentinel1.composite(aoi,year)
 	return image
 
 
