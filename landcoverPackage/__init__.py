@@ -4,6 +4,7 @@ import covariates
 import smoothing
 import assemblage
 import sentinel1
+import landsatSentinel2
 
 
 def composite(aoi,year,sensors="Landat8"):
@@ -33,7 +34,7 @@ def compositeLandsatSentinel2(aoi,year):
 	
 	# function returns an image
 
-	image = sentinel1.composite(aoi,year)
+	image = landsatSentinel2.composite(aoi,year)
 	return image
 
 
