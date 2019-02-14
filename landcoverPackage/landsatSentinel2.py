@@ -1084,3 +1084,4 @@ def composite(aoi,year):
 	
 	return ee.Image(medoid)
 
+

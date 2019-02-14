@@ -31,7 +31,12 @@ class functions():
 	    # get the environment
 		self.env = env() 	
 
-	def main(self):
+	def main(self,aoi,year):
+		
+		self.env.startDate = ee.Date.fromYMD(2018,1,1)
+		self.env.endDate = ee.Date.fromYMD(2018,12,31)
+		self.studyArea = aoi
+		
 		collection = self.getSAR()
 				
 		if  self.env.applyMaskLowEntropy == True:
@@ -46,14 +51,16 @@ class functions():
 			collection = collection.map(self.addRatio)
 			
 		
-		
+		composite = collection.median()
 		perc = collection.reduce(ee.Reducer.percentile(self.env.percentiles))
-		stddev = collection.reduce(ee.Reducer.stdDev())		
-		
+		stdDev = collection.reduce(ee.Reducer.stdDev())		
+
 		# fix the harmonics here
 		#self.getHarmonics(collection,'VV')
 		
+		return ee.Image(composite.addBands(perc).addBands(stdDev))
 		
+	
 		
 	def getSAR(self):
 		""" get the Sentinel 1 data collection"""
@@ -216,6 +223,8 @@ class functions():
 		harmonicTrendResiduals = harmonicTrend.select('residuals').arrayGet(0).rename('RMSE');	  
 
 		out = harmonicTrendCoefficients.select(['constant','t']);
+		
+		print(out.bandNames().getInfo())
 		  
 		# Compute phase and amplitude
 		def getPhaseAmp(harmonic):
@@ -256,8 +265,8 @@ class functions():
 		return stack
 
 
-		
-		
-if __name__ == "__main__":
-	ee.Initialize()
-	functions().main()
+def composite(aoi,year):
+	    
+	img = ee.Image(functions().main(aoi,year))
+	return img
+	
